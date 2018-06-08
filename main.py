@@ -1,4 +1,6 @@
-from flask import Flask, request
+import html
+import urllib
+from flask import Flask, request, redirect
 
 app = Flask(__name__)
 
@@ -32,8 +34,20 @@ add_form = """
 """
 
 # TODO write get_current_watchlist(), just a stub for now
+def get_current_watchlist():
+    return [
+        'Star Wars: A New Hope',
+        'I Heart Huckabees',
+        'Apocalypto',
+        'Snow Piercer',
+        'Love and Basketball',
+    ]
 
 # TODO Build a list of <option> tags using the returned value of get_current_watchlist()
+option_tags = ''
+for movie in get_current_watchlist():
+    # <option value="12">Neverending Story</option>
+    option_tags += '<option value="{movie}">{movie}</option>'.format(movie=movie)
 
 
 # a form for crossing off watched movies
@@ -44,21 +58,22 @@ crossoff_form = """
         <label>
             I want to cross off
             <select name="crossed-off-movie"/>
-                <option value="Star Wars">Star Wars</option>
-                <option value="My Favorite Martian">My Favorite Martian</option>
-                <option value="The Avengers">The Avengers</option>
-                <option value="The Hitchhiker's Guide To The Galaxy">The Hitchhiker's Guide To The Galaxy</option>
+                {option_tags}
             </select>
             from my watchlist.
         </label>
         <input type="submit" value="Cross It Off"/>
     </form>
-"""
+""".format(option_tags=option_tags)
 
 
 @app.route("/crossoff", methods=['POST'])
 def crossoff_movie():
     crossed_off_movie = request.form['crossed-off-movie']
+    # TODO Check that crossed_off_movie is actually a movie on the list.
+    if crossed_off_movie not in get_current_watchlist():
+        return redirect('/?error={}'.format(
+            urllib.parse.quote("That movie isn't on your watchlist & you're silly for trying!")))
     crossed_off_movie_element = "<strike>" + crossed_off_movie + "</strike>"
     confirmation = crossed_off_movie_element + " has been crossed off your Watchlist."
     content = page_header + "<p>" + confirmation + "</p>" + page_footer
@@ -83,11 +98,15 @@ def index():
     edit_header = "<h2>Edit My Watchlist</h2>"
 
     # TODO check if error was passed
+    if request.args.get('error'):
+        error_elem = '<p>' + html.escape(request.args.get('error')) + '</p>'
+    else:
+        error_elem = ''
     # TODO add an error element to content
     # TODO escape error so users can't add <button>stuff</button>
     # or <script>alert('the creator of this page stinks!')</script>
     # build the response string
-    content = page_header + edit_header + add_form + crossoff_form + page_footer
+    content = page_header + error_elem + edit_header + add_form + crossoff_form + page_footer
 
     return content
 
