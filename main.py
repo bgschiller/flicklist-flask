@@ -31,7 +31,14 @@ add_form = """
     </form>
 """
 
+# TODO write get_current_watchlist(), just a stub for now
+
+# TODO Build a list of <option> tags using the returned value of get_current_watchlist()
+
+
 # a form for crossing off watched movies
+# TODO Make this options list based on a python list.
+#
 crossoff_form = """
     <form action="/crossoff" method="post">
         <label>
@@ -75,6 +82,10 @@ def add_movie():
 def index():
     edit_header = "<h2>Edit My Watchlist</h2>"
 
+    # TODO check if error was passed
+    # TODO add an error element to content
+    # TODO escape error so users can't add <button>stuff</button>
+    # or <script>alert('the creator of this page stinks!')</script>
     # build the response string
     content = page_header + edit_header + add_form + crossoff_form + page_footer
 
@@ -82,4 +93,3 @@ def index():
 
 
 app.run()
-
