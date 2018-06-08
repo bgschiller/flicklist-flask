@@ -1,5 +1,6 @@
+import html
+import urllib
 from flask import Flask, request, redirect
-import cgi
 
 app = Flask(__name__)
 
@@ -89,17 +90,21 @@ def crossoff_movie():
 def add_movie():
     new_movie = request.form['new-movie']
 
-    # TODO 
-    # 'escape' the user's input so that if they typed HTML, it doesn't mess up our site
-    
-    # TODO 
     # if the user typed nothing at all, redirect and tell them the error
+    if not new_movie:
+        return redirect('/?error=' + urllib.parse.quote('Please enter a movie'))
 
-    # TODO 
     # if the user wants to add a terrible movie, redirect and tell them not to add it b/c it sucks
+    if new_movie in terrible_movies:
+        return redirect('/?error=' + urllib.parse.quote(
+            "Trust me, you don't want to add '{}' to your list".format(new_movie)))
 
-    # build response content
-    new_movie_element = "<strong>" + new_movie + "</strong>"
+    new_movie_element = (
+        "<strong>" +
+        # 'escape' the user's input so that if they typed HTML, it doesn't mess up our site
+        html.escape(new_movie) +
+        "</strong>"
+    )
     sentence = new_movie_element + " has been added to your Watchlist!"
     content = page_header + "<p>" + sentence + "</p>" + page_footer
 
@@ -113,7 +118,7 @@ def index():
     # if we have an error, make a <p> to display it
     error = request.args.get("error")
     if error:
-        error_esc = cgi.escape(error, quote=True)
+        error_esc = urllib.parse.quote(error)
         error_element = '<p class="error">' + error_esc + '</p>'
     else:
         error_element = ''
