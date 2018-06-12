@@ -1,0 +1,15 @@
+how does the request get routed?
+What are decorators?
+
+Let's not follow along interactively.
+
+create templates directory
+  base.html
+  crossoff.html
+  edit.html
+
+
+Maybe redo the templates video series?
+Skip virtualenv business
+Skip the Jinja2 Environment setup (just use render_template)
+Fix the double @app.route('/') in validation lesson
