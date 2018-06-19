@@ -18,35 +18,16 @@ def get_current_watchlist():
     # returns user's current watchlist--hard coded for now
     return [ "Star Wars", "Minions", "Freaky Friday", "My Favorite Martian" ]
 
-# TODO: 
-# Modify "My Watchlist" so that you eliminate the need for the "crossoff" form in edit.html. 
-# Now, next to every list item/movie listed in "My Watchlist" you should display a button that says "I Watched it!". 
-# Clicking the button will result in a confirmation message that the movie has been watched. 
-# So you'll need to add a form within the <li> tags of "My Watchlist"
-# Once this is done, delete the "crossoff" form in edit.html
+def get_watched_movies():
+    return ['Black Panther', 'Moana', 'Imperium']
 
-# TODO:
-# Make a ratings.html template which lists all movies that have been crossed off.
-# It should have a header of <h2>Movies I Have Watched</h2>
-# Add a form for rating EACH list item/movie using a <select> dropdown with the options/values
-# in this list: ["How was it?", "*", "**", "***", "****", "*****"]
-# And with a button that says "Rate It!" to submit the user's rating.
-# Give this form the action of "/rating-confirmation" and the method of post.
-
-# TODO: 
-# Add a function, movie_ratings, to handle a get request and render the template at "/ratings"
-
-# TODO:
-# Add a function, get_watched_movies, to get the list of crossed off movies. 
-# For now, create a hard-coded list with a few movie titles. 
-
-# TODO:
-# Make a rating-confirmation.html template, to be displayed when the user rates a movie 
-# they have crossed off. 
-
-# TODO: 
-# create a rate_movie function that handles a post request on /rating-confirmation and 
-# renders the `rating-confirmation` template.
+@app.route('/rating-confirmation', methods=['POST'])
+def rate_movie():
+    return render_template(
+        'rating-confirmation.html',
+        movie=request.form['movie'],
+        rating=request.form['rating'],
+    )
 
 @app.route("/crossoff", methods=['POST'])
 def crossoff_movie():
@@ -89,5 +70,9 @@ def index():
     encoded_error = request.args.get("error")
     return render_template('edit.html', watchlist=get_current_watchlist(), error=encoded_error and cgi.escape(encoded_error, quote=True))
 
-app.run()
+@app.route('/ratings')
+def movie_ratings():
+    return render_template('ratings.html', movies=get_watched_movies())
 
+
+app.run()
