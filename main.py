@@ -4,7 +4,7 @@ import cgi
 
 app = Flask(__name__)
 app.config['DEBUG'] = True      # displays runtime errors in the browser, too
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://flicklist:MyNewPass@localhost:8889/flicklist'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://localhost/flicklist'
 app.config['SQLALCHEMY_ECHO'] = True
 
 db = SQLAlchemy(app)
@@ -13,7 +13,8 @@ class Movie(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120))
     watched = db.Column(db.Boolean)
-    
+    rating = db.Column(db.String(5))
+
     # TODO: add a ratings column to the Movie table
 
     def __init__(self, name):
@@ -36,9 +37,11 @@ def get_current_watchlist():
     return Movie.query.filter_by(watched=False).all()
 
 def get_watched_movies():
-    # For now, we are just pretending
-    # returns the list of movies the user has already watched and crossed off
-    return [ "The Matrix", "The Princess Bride", "Buffy the Vampire Slayer" ]
+    """
+    SELECT * FROM movies
+    WHERE watched = true
+    """
+    return Movie.query.filter_by(watched=True).all()
 
 # Create a new route called rate_movie which handles a POST request on /rating-confirmation
 @app.route("/rating-confirmation", methods=['POST'])
@@ -56,10 +59,13 @@ def rate_movie():
         return redirect("/?error=" + error)
 
     # if we didn't redirect by now, then all is well
-    
+
     # TODO: make a persistent change to the model so that you STORE the rating in the database
     # (Note: the next TODO is in templates/ratings.html)
-    
+    movie.rating = rating
+    db.session.add(movie)
+    db.session.commit()
+
     return render_template('rating-confirmation.html', movie=movie, rating=rating)
 
 
@@ -80,7 +86,7 @@ def crossoff_movie():
     crossed_off_movie.watched = True
     db.session.add(crossed_off_movie)
     db.session.commit()
-    
+
     # if we didn't redirect by now, then all is well
     return render_template('crossoff.html', crossed_off_movie=crossed_off_movie)
 
