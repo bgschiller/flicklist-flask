@@ -1,13 +1,23 @@
-from flask import Flask, request, redirect, render_template
+from flask import Flask, request, redirect, render_template, session, flash
 from flask_sqlalchemy import SQLAlchemy
 import cgi
 
 app = Flask(__name__)
 app.config['DEBUG'] = True      # displays runtime errors in the browser, too
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://flicklist:MyNewPass@localhost:8889/flicklist'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://localhost/flicklist'
+# app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://flicklist:MyNewPass@localhost:8889/flicklist'
 app.config['SQLALCHEMY_ECHO'] = True
 
 db = SQLAlchemy(app)
+
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(120))
+    password = db.Column(db.String(120))
+
+    def __repr__(self):
+        return '<User {}>'.format(self.email)
+
 
 class Movie(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -36,6 +46,37 @@ def get_current_watchlist():
 
 def get_watched_movies():
     return Movie.query.filter_by(watched=True).all()
+
+# Add route for /register, GET and POST
+@app.route('/register', methods=['GET','POST'])
+def register():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        if not is_email(email):
+            flash("oops, '{}' doesn't look like a valid email to me...".format(email))
+            return redirect('/register')
+        u = User(email=email, password=password)
+        db.session.add(u)
+        db.session.commit()
+        session['email'] = email
+        return redirect('/')
+    else:
+        return render_template('register.html')
+
+def is_email(email):
+    atsign_index = email.find('@')
+    if atsign_index < 0:
+        return False
+    portion_after_at = email[atsign_index:]
+    return '.' in portion_after_at
+
+@app.route('/logout', methods=['POST'])
+def logout():
+    del session['email']
+    return redirect('/')
+
+
 
 # Create a new route called rate_movie which handles a POST request on /rating-confirmation
 @app.route("/rating-confirmation", methods=['POST'])
@@ -103,6 +144,16 @@ def add_movie():
 def index():
     encoded_error = request.args.get("error")
     return render_template('edit.html', watchlist=get_current_watchlist(), error=encoded_error and cgi.escape(encoded_error, quote=True))
+
+
+@app.before_request
+def check_login():
+    if 'email' not in session and request.endpoint != 'register':
+        flash('You must be logged in to do that!')
+        return redirect('/register')
+
+
+app.secret_key = 'moosefeathers'
 
 if __name__ == "__main__":
     app.run()

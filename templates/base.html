@@ -6,12 +6,41 @@
             .error {
                 color: red;
             }
+            {% block additional_styles %}
+            {% endblock %}
         </style>
     </head>
     <body>
+        <div style="float: right">
+            {% if 'email' in session %}
+                <span>Logged in as {{ session['email'] }}</span>
+                <form method="POST" action="/logout">
+                    <input type="submit" value="Log Out" />
+                </form>
+            {% else %}
+            <a href="/register">register</a>
+            <a href="/login">login</a>
+            {% endif %}
+        </div>
+        <!--
+            float: right
+            check if user in session, provide log out button
+            else, provide register, login buttons
+        -->
         <h1>
             <a href="/">FlickList</a>
         </h1>
+
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class="flashes">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+        <!-- do flashed messages thing -->
 
         {% block content %}
         {% endblock %}
