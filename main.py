@@ -1,38 +1,7 @@
-from flask import Flask, request, redirect, render_template, session, flash
-from flask_sqlalchemy import SQLAlchemy
+from flask import request, redirect, render_template, session, flash
+from app import app, db
+from models import Movie, User
 import cgi
-
-app = Flask(__name__)
-app.config['DEBUG'] = True      # displays runtime errors in the browser, too
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://flicklist:MyNewPass@localhost:8889/flicklist'
-app.config['SQLALCHEMY_ECHO'] = True
-
-db = SQLAlchemy(app)
-
-class User(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    email = db.Column(db.String(120), unique=True)
-    password = db.Column(db.String(120))
-    
-    def __init__(self, email, password):
-        self.email = email
-        self.password = password
-
-    def __repr__(self):
-        return '<User %r>' % self.email
-
-class Movie(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(120))
-    watched = db.Column(db.Boolean)
-    rating = db.Column(db.String(20))
-
-    def __init__(self, name):
-        self.name = name
-        self.watched = False
-
-    def __repr__(self):
-        return '<Movie %r>' % self.name
 
 # a list of movie names that nobody should have to watch
 terrible_movies = [
@@ -43,11 +12,21 @@ terrible_movies = [
     "Starship Troopers"
 ]
 
+def logged_in_user():
+    # We want to add a movie for the _logged-in user_
+    # how do access the logged-in user? by email
+    # where is the email stored? session!
+
+    email = session['user']
+    return User.query.filter_by(email=email).first()
+
 def get_current_watchlist():
-    return Movie.query.filter_by(watched=False).all()
+    owner = logged_in_user()
+    return Movie.query.filter_by(watched=False, owner=owner).all()
 
 def get_watched_movies():
-    return Movie.query.filter_by(watched=True).all()
+    owner = logged_in_user()
+    return Movie.query.filter_by(watched=True, owner=owner).all()
 
 @app.route("/login", methods=['GET', 'POST'])
 def login():
@@ -164,7 +143,12 @@ def add_movie():
         error = "Trust me, you don't want to add '{0}' to your Watchlist".format(new_movie_name)
         return redirect("/?error=" + error)
 
-    movie = Movie(new_movie_name)
+    # We want to add a movie for the _logged-in user_
+    # how do access the logged-in user? by email
+    # where is the email stored? session!
+    email = session['user']
+    owner = User.query.filter_by(email=email).first()
+    movie = Movie(new_movie_name, owner)
     db.session.add(movie)
     db.session.commit()
     return render_template('add-confirmation.html', movie=movie)
