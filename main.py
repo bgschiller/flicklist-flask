@@ -4,7 +4,7 @@ import cgi
 
 app = Flask(__name__)
 app.config['DEBUG'] = True      # displays runtime errors in the browser, too
-app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://flicklist:MyNewPass@localhost:8889/flicklist'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgres://localhost/flicklist'
 app.config['SQLALCHEMY_ECHO'] = True
 
 db = SQLAlchemy(app)
@@ -50,6 +50,22 @@ def get_watched_movies():
     return Movie.query.filter_by(watched=True).all()
 
 # TODO 3: Add "/login" GET and POST routes.
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        user = User.query.filter_by(email=email).first()
+        if user is None:
+            flash('no user with that email')
+            return redirect('/login')
+        if user.password != password:
+            flash('passwords do not match')
+            return redirect('/login')  
+    
+        # if everything went well, log them in, send them to /
+        session['user'] = user.email
+        redirect('/')   
 # TODO 4: Create login template with username and password.
 #         Notice that we've already created a 'login' link in the upper-right corner of the page that'll connect to it.
 
@@ -58,11 +74,18 @@ def register():
     if request.method == 'POST':
         email = request.form['email']
         password = request.form['password']
+        verify = request.form['verify']
         if not is_email(email):
             flash('zoiks! "' + email + '" does not seem like an email address')
             return redirect('/register')
         # TODO 1: validate that form value of 'verify' matches password
+        if password != verify:
+            flash("your passwords don't match!")
+            return redirect('/register')
         # TODO 2: validate that there is no user with that email already
+        if User.query.filter_by(email=email).exists():
+            flash("that email is already taken")
+            return redirect('/register')
         user = User(email=email, password=password)
         db.session.add(user)
         db.session.commit()
@@ -158,9 +181,10 @@ def index():
 
 # TODO 5: modify this function to rely on a list of endpoints that users can visit without being redirected.
 #         It should contain 'register' and 'login'.
+unauthed_endpoints = ['register', 'login']
 @app.before_request
 def require_login():
-    if not ('user' in session or request.endpoint == 'register'):
+    if 'user' not in session and request.endpoint not in unauthed_endpoints:
         return redirect("/register")
 
 # In a real application, this should be kept secret (i.e. not on github)
